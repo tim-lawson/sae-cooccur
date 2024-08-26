@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mats"
+requires-python = ">=3.10"
+license = { text = "MIT License" }
+dependencies = [
+  "accelerate",
+  "datasets",
+  "einops",
+  "huggingface-hub",
+  "safetensors",
+  "simple-parsing",
+  "torch",
+  "transformers",
+]
+version = "0.1.0"
+
+[tool.pyright]
+include = ["mats*"]
+reportPrivateImportUsage = false
+
+[tool.setuptools.packages.find]
+include = ["mats*"]
+
+[tool.ruff]
+select = ["E", "F", "I"]
+line-length = 88
+ignore-init-module-imports = true
