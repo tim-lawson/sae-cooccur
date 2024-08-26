@@ -3,6 +3,8 @@ build
 *.egg-info
 **/__pycache__
 *.csv
+*.db
+*.db-journal
 *.png
 *.safetensors
 slurm-*.out

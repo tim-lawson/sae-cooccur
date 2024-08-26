@@ -1,34 +1,81 @@
+import sqlite3
+from dataclasses import dataclass
+
 import torch
-from safetensors.torch import load_file, save_file
+from simple_parsing import Serializable, parse
+
+
+@dataclass
+class Config(Serializable):
+    database: str = "cooccur.db"
+
+
+def load_db(db_path) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ppmi (
+        latent_i INTEGER,
+        latent_j INTEGER,
+        ppmi REAL,
+        PRIMARY KEY (latent_i, latent_j)
+    )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS count_i (
+        latent_i INTEGER,
+        count INTEGER,
+        PRIMARY KEY (latent_i)
+    )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS count_j (
+        latent_j INTEGER,
+        count INTEGER,
+        PRIMARY KEY (latent_j)
+    )
+    """)
+    conn.commit()
+    return conn, cursor
+
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
     device = "cuda"
-    cooccur = load_file("cooccur.safetensors", device=device)
-    cooccur = torch.sparse_coo_tensor(
-        cooccur["indices"],
-        cooccur["values"],
-        size=torch.Size(cooccur["size"].tolist()),
-        device=device,
+    config = parse(Config)
+
+    conn, cursor = load_db(config.database)
+    cursor.execute("DELETE FROM count_i")
+    cursor.execute("DELETE FROM count_j")
+    cursor.execute("DELETE FROM ppmi")
+
+    cursor.execute("""
+    INSERT INTO count_i (latent_i, count)
+    SELECT latent_i, SUM(count) FROM counts GROUP BY latent_i
+    """)
+    cursor.execute("""
+    INSERT INTO count_j (latent_j, count)
+    SELECT latent_j, SUM(count) FROM counts GROUP BY latent_j
+    """)
+
+    cursor.execute("SELECT SUM(count) FROM counts")
+    count: int = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+    INSERT INTO ppmi (latent_i, latent_j, ppmi)
+    SELECT counts.latent_i,
+    counts.latent_j,
+    LOG(2, ? * counts.count / (count_i.count * count_j.count))
+    FROM counts
+    JOIN count_i ON counts.latent_i = count_i.latent_i
+    JOIN count_j ON counts.latent_j = count_j.latent_j
+    WHERE counts.count > 0
+    AND count_i.count > 0
+    AND count_j.count > 0
+    """,
+        (count,),
     )
-    count = cooccur.sum()
-    count_i = cooccur.sum(dim=0).to_dense()
-    count_j = cooccur.sum(dim=1).to_dense()
-    cooccur = cooccur.coalesce()
-    indices = cooccur.indices()
-    ppmi = torch.sparse_coo_tensor(
-        indices,
-        torch.log2(
-            count * cooccur.values() / count_i[indices[0]] / count_j[indices[1]]
-        ),
-        size=cooccur.size(),
-        device=device,
-    ).coalesce()
-    save_file(
-        {
-            "indices": ppmi.indices().contiguous(),
-            "values": ppmi.values().contiguous(),
-            "size": torch.tensor(ppmi.size()),
-        },
-        "ppmi.safetensors",
-    )
+
+    cursor.execute("DELETE FROM ppmi WHERE ppmi <= 0 OR ppmi IS NULL")
+    conn.commit()
