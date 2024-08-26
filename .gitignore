@@ -2,4 +2,7 @@
 build
 *.egg-info
 **/__pycache__
+*.csv
+*.png
 *.safetensors
+slurm-*.out

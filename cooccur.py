@@ -3,16 +3,20 @@ from safetensors.torch import load_file, save_file
 from tqdm import tqdm
 
 if __name__ == "__main__":
+    torch.set_grad_enabled(False)
+    device = "cuda"
     d_sae = 32768
-    latents = load_file("latents.safetensors")
+    latents = load_file("latents.safetensors", device=device)
     for layer, indices in latents.items():
         n_tokens, k = indices.shape
     latents = [indices for indices in latents.values()]
     n_layers = len(latents)
     n_latents = n_layers * d_sae
 
-    cooccur = torch.sparse_coo_tensor(torch.empty([2, 0]), [], [n_latents, n_latents])
-    for token in tqdm(range(n_tokens)):
+    cooccur = torch.sparse_coo_tensor(
+        torch.empty([2, 0]), [], size=[n_latents, n_latents], device=device
+    )
+    for token in tqdm(range(20_000)):
         indices = torch.cat(
             [indices[token] + d_sae * layer for layer, indices in enumerate(latents)]
         )
@@ -23,7 +27,7 @@ if __name__ == "__main__":
             ]
         )
         update = torch.sparse_coo_tensor(
-            pairs, torch.ones(pairs.size(1)), [n_latents, n_latents]
+            pairs, torch.ones(pairs.size(1)), size=[n_latents, n_latents], device=device
         )
         torch.add(cooccur, update, out=cooccur)
     cooccur = cooccur.coalesce()
