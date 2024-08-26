@@ -41,7 +41,7 @@ def load_db(db_path) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     config = parse(Config)
 
     conn, cursor = load_db(config.database)

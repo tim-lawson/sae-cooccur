@@ -1,15 +1,18 @@
 import sqlite3
 from dataclasses import dataclass
 from os import PathLike
+from typing import Literal
 
 import pandas as pd
 import torch
-from sae import Sae
 from simple_parsing import Serializable, parse
+
+from mats.sae import load_gpt2, load_pythia
 
 
 @dataclass
 class Config(Serializable):
+    saes: Literal["pythia", "gpt2"]
     database: str = "cooccur.db"
 
 
@@ -35,15 +38,13 @@ def normalize(x: torch.Tensor, dim: int = 0) -> torch.Tensor:
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     config = parse(Config)
 
     conn, cursor = create_db(config.database)
     cursor.execute("DELETE FROM cossim")
 
-    layers = ["layers.0", "layers.1", "layers.2", "layers.3", "layers.4", "layers.5"]
-    saes = Sae.load_many("EleutherAI/sae-pythia-70m-deduped-32k", layers=layers)
-    saes = {layer: sae.to(device) for layer, sae in saes.items()}
+    saes, layers = load_pythia(device) if config.saes == "pythia" else load_gpt2(device)
     W_decs = [normalize(sae.W_dec, 1) for sae in saes.values() if sae.W_dec is not None]
     d_sae = W_decs[0].shape[0]
 

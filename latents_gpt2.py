@@ -1,45 +1,41 @@
 from dataclasses import dataclass
 
 import torch
-from sae import Sae
 from safetensors.torch import save_file
-from simple_parsing import Serializable, field, parse
+from simple_parsing import Serializable, parse
 from tqdm import tqdm
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from mats.data import dataloader, load_data
+from mats.sae import load_gpt2
 from mats.tokenizer import load_tokenizer
 from mats.transformer import load_transformer
 
 
 @dataclass
 class Config(Serializable):
-    model_name: str = "EleutherAI/pythia-70m-deduped"
-    layers: list[str] = field(
-        default_factory=lambda: [
-            "layers.0",
-            "layers.1",
-            "layers.2",
-            "layers.3",
-            "layers.4",
-            "layers.5",
-        ]
-    )
     batch_size: int = 1
-    n_batches: int = 512
+    n_batches: int = 1024  # 1024 * 1024 ~ 1M tokens
+    k: int = 16
 
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     config = parse(Config)
 
-    transformer = load_transformer(config.model_name)
-    tokenizer = load_tokenizer(config.model_name)
-    dataset = load_data(tokenizer, transformer.config.max_position_embeddings)
-    saes = Sae.load_many("EleutherAI/sae-pythia-70m-deduped-32k", layers=config.layers)
-    saes = {layer: sae.to(transformer.device) for layer, sae in saes.items()}
+    model_name = "openai-community/gpt2"
+    saes, layers = load_gpt2(device)
+    transformer = load_transformer(model_name)
+    tokenizer = load_tokenizer(model_name)
+    dataset = load_data(
+        tokenizer,
+        "Skylion007/openwebtext",
+        "text",
+        transformer.config.n_positions,
+    )
 
-    latents = {layer: [] for layer in config.layers}
+    latents = {layer: [] for layer in layers}
     for i, batch in tqdm(
         enumerate(dataloader(dataset, config.batch_size)), total=config.n_batches
     ):
@@ -56,7 +52,7 @@ if __name__ == "__main__":
 
         for (layer, sae), hidden_state in zip(saes.items(), hidden_states):
             # batch pos k
-            top_indices = sae.encode(hidden_state).top_indices
+            top_indices = sae.encode(hidden_state).topk(16).indices
             # batch pos k -> (batch pos) k
             latents[layer].append(top_indices.view(-1, top_indices.size(-1)))
 

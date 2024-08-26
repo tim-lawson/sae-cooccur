@@ -11,10 +11,12 @@ from tqdm import tqdm
 
 @dataclass
 class Config(Serializable):
+    # 32768 for EleutherAI/pythia-70m-deduped
+    # 24576 for openai-community/gpt2
+    d_sae: int
+    batch_size: int = 1_000_000
     latents: str = "latents.safetensors"
     database: str = "cooccur.db"
-    batch_size: int = 1_000_000
-    d_sae: int = 32768
 
 
 def create_db(database: str | PathLike) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
@@ -51,7 +53,7 @@ def find_pairs(indices: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     config = parse(Config)
 
     latents = load_file(config.latents, device=device)
@@ -72,15 +74,12 @@ if __name__ == "__main__":
                 ]
             )
         )
-
         for (i, j), count in zip(pairs.tolist(), counts.tolist()):
             batch[(i, j)] += count
-
         if len(batch) >= config.batch_size:
             update(cursor, batch)
             conn.commit()
             batch.clear()
-
     if batch:
         update(cursor, batch)
         conn.commit()

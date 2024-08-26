@@ -7,8 +7,15 @@ from transformers import PreTrainedTokenizerBase
 from mats.tokenizer import concat_and_tokenize
 
 
-def load_data(tokenizer: PreTrainedTokenizerBase, max_length: int) -> IterableDataset:
-    dataset: IterableDataset = load_dataset("fahamu/ioi", split="train", streaming=True)  # type: ignore
+def load_data(
+    tokenizer: PreTrainedTokenizerBase, path: str, key: str, max_length: int
+) -> IterableDataset:
+    dataset: IterableDataset = load_dataset(
+        path,
+        split="train",
+        streaming=True,
+        trust_remote_code=True,
+    )  # type: ignore
     return dataset.map(
         concat_and_tokenize,
         batched=True,
@@ -17,7 +24,7 @@ def load_data(tokenizer: PreTrainedTokenizerBase, max_length: int) -> IterableDa
         fn_kwargs={
             "tokenizer": tokenizer,
             "max_length": max_length,
-            "key": "ioi_sentences",
+            "key": key,
         },
     ).with_format("torch")
 
