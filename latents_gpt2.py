@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from mats.data import dataloader, load_data
-from mats.sae import load_gpt2
+from mats.sae import load_saes_gpt2
 from mats.tokenizer import load_tokenizer
 from mats.transformer import load_transformer
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     config = parse(Config)
 
     model_name = "openai-community/gpt2"
-    saes, layers = load_gpt2(device)
+    saes, layers = load_saes_gpt2(device)
     transformer = load_transformer(model_name)
     tokenizer = load_tokenizer(model_name)
     dataset = load_data(
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
         for (layer, sae), hidden_state in zip(saes.items(), hidden_states):
             # batch pos k
-            top_indices = sae.encode(hidden_state).topk(16).indices
+            top_indices = sae.encode(hidden_state).topk(config.k).indices
             # batch pos k -> (batch pos) k
             latents[layer].append(top_indices.view(-1, top_indices.size(-1)))
 

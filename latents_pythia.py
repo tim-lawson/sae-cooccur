@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from mats.data import dataloader, load_data
-from mats.sae import load_pythia
+from mats.sae import load_saes_pythia
 from mats.tokenizer import load_tokenizer
 from mats.transformer import load_transformer
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     config = parse(Config)
 
     model_name = "EleutherAI/pythia-70m-deduped"
-    saes, layers = load_pythia(device)
+    saes, layers = load_saes_pythia(device)
     transformer = load_transformer(model_name)
     tokenizer = load_tokenizer(model_name)
     dataset = load_data(

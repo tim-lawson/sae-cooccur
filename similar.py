@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from simple_parsing import Serializable, parse
 
-from mats.sae import load_gpt2, load_pythia
+from mats.sae import load_saes, normalize
 
 
 @dataclass
@@ -31,11 +31,6 @@ def create_db(database: str | PathLike) -> tuple[sqlite3.Connection, sqlite3.Cur
     return conn, cursor
 
 
-def normalize(x: torch.Tensor, dim: int = 0) -> torch.Tensor:
-    norm = torch.linalg.vector_norm(x, dim=dim, keepdim=True)
-    return x / torch.max(norm, 1e-8 * torch.ones_like(norm))
-
-
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -44,7 +39,7 @@ if __name__ == "__main__":
     conn, cursor = create_db(config.database)
     cursor.execute("DELETE FROM cossim")
 
-    saes, layers = load_pythia(device) if config.saes == "pythia" else load_gpt2(device)
+    saes, layers = load_saes(config.saes, device)
     W_decs = [normalize(sae.W_dec, 1) for sae in saes.values() if sae.W_dec is not None]
     d_sae = W_decs[0].shape[0]
 
