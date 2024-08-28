@@ -6,6 +6,7 @@ from typing import Literal
 import pandas as pd
 import torch
 from simple_parsing import Serializable, parse
+from tqdm import tqdm
 
 from mats.sae import load_saes, normalize
 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     d_sae = W_decs[0].shape[0]
 
     cursor.execute("SELECT * FROM ppmi")
-    for latent_i, latent_j, ppmi in cursor.fetchall():
+    for latent_i, latent_j, ppmi in tqdm(cursor.fetchall()):
         layer_i = latent_i // d_sae
         layer_j = latent_j // d_sae
         cossim = torch.dot(
@@ -56,6 +57,7 @@ if __name__ == "__main__":
         )
     conn.commit()
 
+    # TODO: Join tables with SQL.
     cursor.execute("SELECT * FROM cossim")
     cossim = cursor.fetchall()
     cossim = pd.DataFrame(cossim, columns=["latent_i", "latent_j", "cossim"])

@@ -88,7 +88,7 @@ if __name__ == "__main__":
             update(cursor, batch)
             conn.commit()
             batch = torch.zeros_like(batch)
-    if batch:
+    if batch._nnz() > 0:
         update(cursor, batch)
         conn.commit()
 

@@ -5,6 +5,7 @@ build
 *.csv
 *.db
 *.db-journal
+*.ipynb
 *.png
 *.safetensors
 slurm-*.out
