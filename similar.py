@@ -8,7 +8,7 @@ import torch
 from simple_parsing import Serializable, parse
 from tqdm import tqdm
 
-from mats.sae import load_saes, normalize
+from sae_cooccur.sae import load_saes, normalize
 
 
 @dataclass
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     d_sae = W_decs[0].shape[0]
 
     cursor.execute("SELECT * FROM ppmi")
-    for latent_i, latent_j, ppmi in tqdm(cursor.fetchall()):
+    for latent_i, latent_j, _ppmi in tqdm(cursor.fetchall()):
         layer_i = latent_i // d_sae
         layer_j = latent_j // d_sae
         cossim = torch.dot(

@@ -6,10 +6,10 @@ from simple_parsing import Serializable, parse
 from tqdm import tqdm
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
-from mats.data import dataloader, load_data
-from mats.sae import load_saes_pythia
-from mats.tokenizer import load_tokenizer
-from mats.transformer import load_transformer
+from sae_cooccur.data import dataloader, load_data
+from sae_cooccur.sae import load_saes_pythia
+from sae_cooccur.tokenizer import load_tokenizer
+from sae_cooccur.transformer import load_transformer
 
 
 @dataclass
@@ -49,7 +49,9 @@ if __name__ == "__main__":
         # batch pos d_model
         hidden_states = outputs.hidden_states[1:]  # type: ignore
 
-        for (layer, sae), hidden_state in zip(saes.items(), hidden_states):
+        for (layer, sae), hidden_state in zip(
+            saes.items(), hidden_states, strict=False
+        ):
             # batch pos k
             top_indices = sae.encode(hidden_state).top_indices
             # batch pos k -> (batch pos) k

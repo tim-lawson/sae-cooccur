@@ -44,7 +44,9 @@ def update(cursor: sqlite3.Cursor, batch: torch.Tensor) -> None:
     """,
         [
             (index[0], index[1], value)
-            for index, value in zip(batch.indices().tolist(), batch.values().tolist())
+            for index, value in zip(
+                batch.indices().tolist(), batch.values().tolist(), strict=False
+            )
         ],
     )
 
@@ -55,8 +57,10 @@ if __name__ == "__main__":
     config = parse(Config)
 
     latents = load_file(config.latents, device=device)
-    for layer, indices in latents.items():
+    n_tokens, k = 0, 0
+    for _layer, indices in latents.items():
         n_tokens, k = indices.shape
+
     latents = [indices for indices in latents.values()]
     n_layers = len(latents)
     n_latents = n_layers * config.d_sae

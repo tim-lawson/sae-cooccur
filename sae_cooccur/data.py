@@ -4,7 +4,7 @@ from datasets import IterableDataset, load_dataset
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
 
-from mats.tokenizer import concat_and_tokenize
+from sae_cooccur.tokenizer import concat_and_tokenize
 
 
 def load_data(

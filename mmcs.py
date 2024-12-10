@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from simple_parsing import Serializable, parse
 
-from mats.sae import load_saes, normalize
+from sae_cooccur.sae import load_saes, normalize
 
 
 @dataclass

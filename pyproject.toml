@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mats"
+name = "sae_cooccur"
 requires-python = ">=3.10"
 license = { text = "MIT License" }
 dependencies = [
@@ -12,6 +12,8 @@ dependencies = [
   "einops",
   "huggingface-hub",
   "pandas",
+  "ruff>=0.8.2",
+  "sae-lens>=5.2.0",
   "sae@git+https://github.com/tim-lawson/sae@timl/load-cfg",
   "safetensors",
   "seaborn",
@@ -22,13 +24,15 @@ dependencies = [
 version = "0.1.0"
 
 [tool.pyright]
-include = ["mats*"]
+include = ["sae_cooccur*"]
 reportPrivateImportUsage = false
 
 [tool.setuptools.packages.find]
-include = ["mats*"]
+include = ["sae_cooccur*"]
 
 [tool.ruff]
-select = ["E", "F", "I"]
-line-length = 88
-ignore-init-module-imports = true
+target-version = "py312"
+
+[tool.ruff.lint]
+ignore = ["F722", "F821", "UP037"]
+select = ["E", "F", "UP", "B", "SIM", "I"]
